@@ -3,406 +3,196 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ระบบบันทึกค่าใช้จ่าย | ไทย สแทร์</title>
+<title>ระบบบันทึกค่าใช้จ่าย | ไทย สแทร์ (Real-time)</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
 <style>
   :root {
-    --navy:    #0d1b2a;
-    --navy2:   #1a2d42;
-    --navy3:   #243b55;
-    --accent:  #f4a261;
-    --accent2: #e76f51;
-    --teal:    #2ec4b6;
-    --green:   #06d6a0;
-    --red:     #ef476f;
-    --gold:    #ffd166;
-    --white:   #f8f9fa;
-    --gray:    #8899aa;
-    --border:  rgba(255,255,255,0.08);
-    --card:    rgba(255,255,255,0.04);
-    --glass:   rgba(255,255,255,0.06);
+    --navy: #0d1b2a; --navy2: #1a2d42; --accent: #f4a261; --teal: #2ec4b6;
+    --white: #f8f9fa; --gray: #8899aa; --border: rgba(255,255,255,0.08);
+    --glass: rgba(255,255,255,0.06); --red: #ef476f;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{
-    font-family:'Sarabun',sans-serif;
-    background:var(--navy);
-    color:var(--white);
-    min-height:100vh;
-    overflow-x:hidden;
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Sarabun', sans-serif; background: var(--navy); color: var(--white);
+    min-height: 100vh; line-height: 1.6;
   }
-  body::before{
-    content:'';position:fixed;inset:0;
-    background:
-      radial-gradient(ellipse 60% 50% at 20% 10%, rgba(244,162,97,.12) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 60% at 80% 80%, rgba(46,196,182,.10) 0%, transparent 60%),
-      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(26,45,66,.9) 0%, transparent 100%);
-    pointer-events:none;z-index:0;
+  #app { max-width: 1000px; margin: 0 auto; padding: 20px; }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 0; border-bottom: 1px solid var(--border); margin-bottom: 30px;
   }
-  #app{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:0 24px 80px}
-  .topbar{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:20px 0 16px;border-bottom:1px solid var(--border);
-    margin-bottom:32px;
+  .btn {
+    padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+    font-weight: 600; font-family: 'Sarabun'; transition: 0.2s;
   }
-  .brand{display:flex;align-items:center;gap:14px}
-  .brand-logo{
-    width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));
-    border-radius:10px;display:flex;align-items:center;justify-content:center;
-    font-size:20px;font-weight:700;color:#fff;letter-spacing:-1px;
-    box-shadow:0 4px 20px rgba(244,162,97,.4);
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-ghost { background: var(--glass); color: var(--white); border: 1px solid var(--border); }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+  .stat-card { background: var(--glass); padding: 20px; border-radius: 15px; border: 1px solid var(--border); }
+  .stat-label { font-size: 0.8rem; color: var(--gray); text-transform: uppercase; }
+  .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--accent); font-family: 'IBM Plex Mono'; }
+  .table-container { background: var(--glass); border-radius: 15px; border: 1px solid var(--border); overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 600px; }
+  th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { font-size: 0.8rem; color: var(--gray); }
+  tr:hover { background: rgba(255,255,255,0.02); }
+  
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
   }
-  .brand-text h1{font-size:17px;font-weight:700;letter-spacing:.5px}
-  .brand-text p{font-size:12px;color:var(--gray);font-family:'IBM Plex Mono',monospace}
-  .topbar-right{display:flex;gap:10px;align-items:center}
-  .btn{
-    padding:9px 18px;border-radius:8px;border:none;cursor:pointer;
-    font-family:'Sarabun',sans-serif;font-size:14px;font-weight:600;
-    transition:all .2s;display:flex;align-items:center;gap:7px;
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--navy2); padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; border: 1px solid var(--border); }
+  .form-group { margin-bottom: 15px; }
+  label { display: block; font-size: 0.9rem; margin-bottom: 5px; color: var(--gray); }
+  input, select {
+    width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05); color: #fff; outline: none;
   }
-  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
-    box-shadow:0 4px 14px rgba(244,162,97,.35);}
-  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(244,162,97,.5)}
-  .btn-ghost{background:var(--glass);border:1px solid var(--border);color:var(--white)}
-  .btn-ghost:hover{background:rgba(255,255,255,.1)}
-  .btn-teal{background:linear-gradient(135deg,var(--teal),#25a99f);color:#fff;
-    box-shadow:0 4px 14px rgba(46,196,182,.3);}
-  .btn-teal:hover{transform:translateY(-1px)}
-  .btn-sm{padding:6px 12px;font-size:13px}
-  .btn-danger{background:rgba(239,71,111,.15);border:1px solid rgba(239,71,111,.3);color:var(--red)}
-  .btn-danger:hover{background:rgba(239,71,111,.25)}
-  .tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--card);
-    border:1px solid var(--border);border-radius:12px;padding:5px;width:fit-content}
-  .tab{
-    padding:9px 22px;border-radius:8px;cursor:pointer;font-size:14px;
-    font-weight:600;transition:all .2s;color:var(--gray);border:none;background:none;
-    font-family:'Sarabun',sans-serif;
+  input:focus { border-color: var(--accent); }
+  .toast {
+    position: fixed; bottom: 20px; right: 20px; background: var(--teal);
+    color: #fff; padding: 12px 24px; border-radius: 10px; display: none; z-index: 2000;
   }
-  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));
-    color:#fff;box-shadow:0 3px 12px rgba(244,162,97,.4)}
-  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
-  .stat-card{
-    background:var(--glass);border:1px solid var(--border);border-radius:14px;
-    padding:20px 22px;position:relative;overflow:hidden;
-  }
-  .stat-label{font-size:12px;color:var(--gray);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
-  .stat-val{font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:-1px}
-  .stat-val.orange{color:var(--accent)}
-  .stat-val.teal{color:var(--teal)}
-  .stat-val.gold{color:var(--gold)}
-  .panel{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px}
-  .panel-title{font-size:16px;font-weight:700;margin-bottom:22px; display:flex;align-items:center;gap:10px;}
-  .panel-title span{ width:6px;height:22px;background:linear-gradient(var(--accent),var(--accent2)); border-radius:3px;display:inline-block; }
-  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
-  .form-group{display:flex;flex-direction:column;gap:6px}
-  .form-group.full{grid-column:1/-1}
-  label{font-size:13px;font-weight:600;color:var(--gray);letter-spacing:.4px}
-  input,select,textarea{
-    background:rgba(255,255,255,.06);border:1px solid var(--border);
-    border-radius:8px;padding:11px 14px;color:var(--white);
-    font-family:'Sarabun',sans-serif;font-size:14px; outline:none;
-  }
-  input:focus,select:focus,textarea:focus{ border-color:var(--accent);background:rgba(244,162,97,.08); }
-  .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  thead tr{background:rgba(255,255,255,.06)}
-  th{ padding:13px 16px;text-align:left;font-size:12px;font-weight:700; color:var(--gray);border-bottom:1px solid var(--border);white-space:nowrap; }
-  tbody tr{border-bottom:1px solid var(--border);}
-  td{padding:13px 16px;vertical-align:middle}
-  .td-num{font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right}
-  .cat-badge{ display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600; }
-  .modal-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100; display:flex;align-items:center;justify-content:center;padding:20px; opacity:0;pointer-events:none;transition:opacity .25s; }
-  .modal-overlay.open{opacity:1;pointer-events:all}
-  .modal{ background:var(--navy2);border:1px solid var(--border);border-radius:18px; width:100%;max-width:560px;max-height:90vh;overflow-y:auto; padding:28px; }
-  .toast{ position:fixed;bottom:28px;right:28px;z-index:999; background:var(--green);color:var(--navy);padding:13px 20px; border-radius:10px;font-weight:600;font-size:14px; transform:translateY(80px);opacity:0;transition:all .3s; }
-  .toast.show{transform:translateY(0);opacity:1}
-  .toast.error{background:var(--red);color:#fff}
-  .page{display:none}.page.active{display:block}
-  .month-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-  .month-card{ background:var(--glass);border:1px solid var(--border);border-radius:14px; padding:18px 20px;cursor:pointer; }
 </style>
 </head>
 <body>
 
 <div id="app">
-  <div class="topbar">
-    <div class="brand">
-      <div class="brand-logo">TS</div>
-      <div class="brand-text">
-        <h1>ระบบบันทึกค่าใช้จ่าย</h1>
-        <p>THAI STAIR CO., LTD. — Factory Manager</p>
-      </div>
+  <div class="header">
+    <div>
+      <h1 style="letter-spacing: 1px;">THAI STAIR</h1>
+      <p style="color: var(--gray); font-size: 0.8rem;">ระบบบันทึกค่าใช้จ่ายส่วนกลาง (Real-time)</p>
     </div>
-    <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
-      <button class="btn btn-teal btn-sm" onclick="showShareModal()">🔗 แชร์ Link</button>
-      <button class="btn btn-primary" onclick="openAddModal()">+ เพิ่มรายการ</button>
-    </div>
+    <button class="btn btn-primary" onclick="openAddModal()">+ เพิ่มรายการ</button>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
-    <button class="tab" onclick="switchTab('entries')">📋 รายการทั้งหมด</button>
-    <button class="tab" onclick="switchTab('monthly')">📅 สรุปรายเดือน</button>
-  </div>
-
-  <!-- DASHBOARD -->
-  <div id="page-dashboard" class="page active">
-    <div class="stats-grid" id="statsGrid"></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:20px">
-      <div class="panel">
-        <div class="panel-title"><span></span>รายการล่าสุด</div>
-        <div id="recentList"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-title"><span></span>ค่าใช้จ่ายตามหมวดหมู่ (เดือนนี้)</div>
-        <div id="catBreakdown"></div>
-      </div>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">ยอดรวมเดือนนี้</div>
+      <div id="totalMonth" class="stat-value">฿0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">ยอดรวมทั้งหมด</div>
+      <div id="totalAll" class="stat-value">฿0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">จำนวนรายการ</div>
+      <div id="entryCount" class="stat-value" style="color: var(--white)">0</div>
     </div>
   </div>
 
-  <!-- ENTRIES -->
-  <div id="page-entries" class="page">
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>วันที่</th>
-            <th>หมวดหมู่</th>
-            <th>รายละเอียด</th>
-            <th style="text-align:right">เงินต้น</th>
-            <th style="text-align:right">VAT</th>
-            <th style="text-align:right">รวม</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="entriesTbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- MONTHLY -->
-  <div id="page-monthly" class="page">
-    <div id="monthlyCards" class="month-grid"></div>
-    <div id="monthDetail" class="panel" style="display:none;margin-top:20px"></div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>วันที่</th>
+          <th>หมวดหมู่</th>
+          <th>รายละเอียด</th>
+          <th style="text-align: right;">รวมสุทธิ</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="entriesTbody">
+        </tbody>
+    </table>
   </div>
 </div>
 
-<!-- MODAL ADD/EDIT -->
-<div class="modal-overlay" id="addModal">
+<div class="modal-overlay" id="modal">
   <div class="modal">
-    <h3 id="modalTitle" style="margin-bottom:20px">เพิ่มรายการ</h3>
-    <div class="form-grid">
-      <div class="form-group"><label>วันที่</label><input type="date" id="fDate"></div>
-      <div class="form-group"><label>หมวดหมู่</label><select id="fCat"></select></div>
-      <div class="form-group full"><label>รายละเอียด</label><input type="text" id="fDesc"></div>
-      <div class="form-group"><label>จำนวนเงิน (ไม่รวม VAT)</label><input type="number" id="fAmt" oninput="calcVAT()"></div>
-      <div class="form-group"><label>VAT 7%</label><input type="number" id="fVat"></div>
-      <div class="form-group"><label>ใบเสร็จ</label><select id="fReceipt"><option>มี</option><option>ไม่มี</option></select></div>
-      <div class="form-group full"><label>หมายเหตุ</label><textarea id="fNote"></textarea></div>
+    <h2 id="modalTitle" style="margin-bottom: 20px;">เพิ่มรายการใหม่</h2>
+    <div class="form-group">
+      <label>วันที่</label>
+      <input type="date" id="fDate">
     </div>
-    <div style="margin-top:20px; display:flex; gap:10px">
-      <button class="btn btn-primary" onclick="saveEntry()">บันทึก</button>
-      <button class="btn btn-ghost" onclick="closeModal('addModal')">ยกเลิก</button>
-      <button class="btn btn-danger btn-sm" id="deleteBtn" style="margin-left:auto" onclick="deleteEntry()">ลบ</button>
+    <div class="form-group">
+      <label>หมวดหมู่</label>
+      <select id="fCat">
+        <option>ค่าวัสดุสิ้นเปลือง</option>
+        <option>ค่าซ่อมบำรุง</option>
+        <option>ค่าเดินทาง / เบี้ยเลี้ยง</option>
+        <option>ค่าสาธารณูปโภค</option>
+        <option>ค่าใช้จ่ายงานไทยซัน</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>รายละเอียด</label>
+      <input type="text" id="fDesc" placeholder="เช่น ซื้อน็อต, ค่าไฟ...">
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div class="form-group">
+        <label>เงินต้น</label>
+        <input type="number" id="fAmt" placeholder="0.00" oninput="calcVAT()">
+      </div>
+      <div class="form-group">
+        <label>VAT 7%</label>
+        <input type="number" id="fVat" placeholder="0.00">
+      </div>
+    </div>
+    <div style="margin-top: 20px; display: flex; gap: 10px;">
+      <button class="btn btn-primary" style="flex: 2;" onclick="saveEntry()">บันทึกข้อมูล</button>
+      <button class="btn btn-ghost" style="flex: 1;" onclick="closeModal()">ยกเลิก</button>
+      <button id="delBtn" class="btn" style="background: var(--red); color: #fff; display: none;" onclick="deleteEntry()">ลบ</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL SHARE -->
-<div class="modal-overlay" id="shareModal">
-  <div class="modal" style="max-width:450px">
-    <h3>🔗 สร้างลิงก์สำหรับแชร์ข้อมูล</h3>
-    <p style="font-size:12px; color:var(--gray); margin:10px 0 20px">ข้อมูลทั้งหมดจะถูกเข้ารหัสไว้ใน URL ผู้รับจะสามารถดูข้อมูลได้ทันที</p>
-    <input type="text" id="shareLinkInput" readonly style="width:100%; font-size:11px; margin-bottom:15px; color:var(--teal)">
-    <div style="display:flex; gap:10px">
-      <button class="btn btn-teal" onclick="generateShareLink()">สร้างลิงก์</button>
-      <button class="btn btn-primary" onclick="copyShareLink()">คัดลอก</button>
-      <button class="btn btn-ghost" onclick="closeModal('shareModal')">ปิด</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast">บันทึกสำเร็จ!</div>
 
 <script>
-const STORAGE_KEY = 'thaisun_expenses_v3';
-const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-const CATS = [
-  {name:'ค่าวัสดุสิ้นเปลือง', color:'#f4a261', bg:'rgba(244,162,97,.15)'},
-  {name:'ค่าซ่อมบำรุง', color:'#06d6a0', bg:'rgba(6,214,160,.15)'},
-  {name:'ค่าเดินทาง / เบี้ยเลี้ยง', color:'#ffd166', bg:'rgba(255,209,102,.15)'},
-  {name:'ค่าสาธารณูปโภค', color:'#2ec4b6', bg:'rgba(46,196,182,.15)'},
-  {name:'ค่าใช้จ่ายงานไทยซัน', color:'#e76f51', bg:'rgba(231,111,81,.15)'},
-];
+// --- ส่วนเชื่อมต่อ Firebase (ใช้ค่าที่คุณให้มา) ---
+const firebaseConfig = {
+  apiKey: "AIzaSyAeseMnoxbVhxNioVBVoz5A9xFj9Xy-E48",
+  authDomain: "thai-stair-expense.firebaseapp.com",
+  databaseURL: "https://thai-stair-expense-default-rtdb.firebaseio.com",
+  projectId: "thai-stair-expense",
+  storageBucket: "thai-stair-expense.firebasestorage.app",
+  messagingSenderId: "407584930422",
+  appId: "1:407584930422:web:e7c55726982de240373d57",
+  measurementId: "G-207CGC3YYK"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 let entries = [];
 let editId = null;
 
-function fmt(n){ return (+n||0).toLocaleString('th-TH',{minimumFractionDigits:2}) }
-function showToast(m, type='success'){ 
-  const t = document.getElementById('toast'); 
-  t.textContent = m; t.className = 'toast show ' + (type==='error'?'error':'');
-  setTimeout(()=>t.className='toast', 3000);
-}
-
-function init(){
-  const params = new URLSearchParams(window.location.search);
-  const sharedData = params.get('data');
-  if(sharedData){
-    try {
-      entries = JSON.parse(decodeURIComponent(escape(atob(sharedData))));
-      showToast('แสดงข้อมูลจาก Link แชร์', 'info');
-    } catch(e) { entries = []; }
-  } else {
-    entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  }
-  populateCats();
-  switchTab('dashboard');
-}
-
-function populateCats(){
-  document.getElementById('fCat').innerHTML = CATS.map(c=>`<option>${c.name}</option>`).join('');
-}
-
-function calcVAT(){
-  const amt = +document.getElementById('fAmt').value;
-  document.getElementById('fVat').value = (amt * 0.07).toFixed(2);
-}
-
-function switchTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active', ['dashboard','entries','monthly'][i]===t));
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+t).classList.add('active');
-  if(t==='dashboard') renderDash();
-  if(t==='entries') renderEntries();
-  if(t==='monthly') renderMonthly();
-}
-
-function renderDash(){
-  const total = entries.reduce((s,e)=>s+(+e.amt)+(+e.vat), 0);
-  const thisMonth = entries.filter(e=>new Date(e.date).getMonth() === new Date().getMonth());
-  const monthTotal = thisMonth.reduce((s,e)=>s+(+e.amt)+(+e.vat), 0);
-
-  document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card"><div class="stat-label">ยอดรวมทั้งหมด</div><div class="stat-val orange">฿${fmt(total)}</div></div>
-    <div class="stat-card"><div class="stat-label">ยอดเดือนนี้</div><div class="stat-val teal">฿${fmt(monthTotal)}</div></div>
-    <div class="stat-card"><div class="stat-label">จำนวนรายการ</div><div class="stat-val gold">${entries.length}</div></div>
-  `;
-
-  document.getElementById('recentList').innerHTML = entries.slice(-5).reverse().map(e=>`
-    <div style="padding:10px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between">
-      <span>${e.desc}</span><span style="color:var(--accent)">฿${fmt((+e.amt)+(+e.vat))}</span>
-    </div>
-  `).join('');
-}
-
-function renderEntries(){
-  document.getElementById('entriesTbody').innerHTML = entries.map(e=>`
-    <tr>
-      <td>${e.date}</td>
-      <td>${e.cat}</td>
-      <td>${e.desc}</td>
-      <td class="td-num">${fmt(e.amt)}</td>
-      <td class="td-num">${fmt(e.vat)}</td>
-      <td class="td-num" style="color:var(--accent)">${fmt((+e.amt)+(+e.vat))}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openEditModal(${e.id})">แก้ไข</button></td>
-    </tr>
-  `).join('');
-}
-
-function renderMonthly(){
-  const groups = {};
-  entries.forEach(e => {
-    const m = new Date(e.date).getMonth();
-    groups[m] = (groups[m] || 0) + (+e.amt + +e.vat);
+// ดึงข้อมูล Real-time
+function init() {
+  db.ref('expenses').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      entries = Object.keys(data).map(key => ({ ...data[key], fbId: key }));
+      entries.sort((a, b) => b.date.localeCompare(a.date)); // เรียงวันที่ล่าสุดขึ้นก่อน
+    } else {
+      entries = [];
+    }
+    renderUI();
   });
-  document.getElementById('monthlyCards').innerHTML = MONTHS_TH.map((m,i)=>`
-    <div class="month-card">
-      <div style="font-weight:700">${m}</div>
-      <div style="font-size:20px; color:var(--accent)">฿${fmt(groups[i]||0)}</div>
-    </div>
-  `).join('');
 }
 
-function openAddModal(){
-  editId = null;
-  document.getElementById('modalTitle').textContent = 'เพิ่มรายการ';
-  document.getElementById('deleteBtn').style.display = 'none';
-  document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
-  ['fDesc','fAmt','fVat','fNote'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('addModal').classList.add('open');
-}
+function renderUI() {
+  const tbody = document.getElementById('entriesTbody');
+  const now = new Date();
+  const currentMonth = now.toISOString().substring(0, 7); // "YYYY-MM"
+  
+  let totalAll = 0;
+  let totalMonth = 0;
 
-function openEditModal(id){
-  editId = id;
-  const e = entries.find(x=>x.id===id);
-  document.getElementById('modalTitle').textContent = 'แก้ไขรายการ';
-  document.getElementById('deleteBtn').style.display = 'block';
-  document.getElementById('fDate').value = e.date;
-  document.getElementById('fCat').value = e.cat;
-  document.getElementById('fDesc').value = e.desc;
-  document.getElementById('fAmt').value = e.amt;
-  document.getElementById('fVat').value = e.vat;
-  document.getElementById('fReceipt').value = e.receipt;
-  document.getElementById('fNote').value = e.note;
-  document.getElementById('addModal').classList.add('open');
-}
+  tbody.innerHTML = entries.map(e => {
+    const sum = Number(e.amt) + Number(e.vat);
+    totalAll += sum;
+    if (e.date.startsWith(currentMonth)) totalMonth += sum;
 
-function saveEntry(){
-  const data = {
-    id: editId || Date.now(),
-    date: document.getElementById('fDate').value,
-    cat: document.getElementById('fCat').value,
-    desc: document.getElementById('fDesc').value,
-    amt: +document.getElementById('fAmt').value,
-    vat: +document.getElementById('fVat').value,
-    receipt: document.getElementById('fReceipt').value,
-    note: document.getElementById('fNote').value
-  };
-  if(editId) entries = entries.map(x=>x.id===editId?data:x);
-  else entries.push(data);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  closeModal('addModal');
-  switchTab('dashboard');
-  showToast('บันทึกเรียบร้อย');
-}
-
-function deleteEntry(){
-  if(!confirm('ยืนยันการลบ?')) return;
-  entries = entries.filter(x=>x.id!==editId);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  closeModal('addModal');
-  switchTab('dashboard');
-}
-
-function showShareModal(){ document.getElementById('shareModal').classList.add('open'); }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-
-function generateShareLink(){
-  const json = JSON.stringify(entries);
-  const base64 = btoa(unescape(encodeURIComponent(json)));
-  const url = window.location.origin + window.location.pathname + '?data=' + base64;
-  document.getElementById('shareLinkInput').value = url;
-}
-
-function copyShareLink(){
-  const input = document.getElementById('shareLinkInput');
-  input.select();
-  document.execCommand('copy');
-  showToast('คัดลอกลิงก์แล้ว');
-}
-
-function exportCSV(){
-  let csv = "\uFEFFวันที่,หมวดหมู่,รายละเอียด,จำนวนเงิน,VAT,รวม\n";
-  entries.forEach(e=> csv += `${e.date},${e.cat},${e.desc},${e.amt},${e.vat},${+e.amt + +e.vat}\n`);
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'expenses_report.csv';
-  link.click();
-}
-
-window.onload = init;
-</script>
-</body>
-</html>
+    return `
+      <tr>
+        <td><span style="font-family: 'IBM Plex Mono'; font-size: 0.85
