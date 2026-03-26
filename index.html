@@ -402,7 +402,26 @@ function exportCSV(){
   link.click();
 }
 
-window.onload = init;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCodQPSjtJGK7UUcPjaGH6a0Q-tWJ4gbLU",
+    authDomain: "factory-manager-eee47.firebaseapp.com",
+    databaseURL: "https://factory-manager-eee47-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "factory-manager-eee47",
+    storageBucket: "factory-manager-eee47.firebasestorage.app",
+    messagingSenderId: "486375965588",
+    appId: "1:486375965588:web:c30c66af6db1d98a1c0581",
+    measurementId: "G-5C7H4YX26B"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  console.log("เชื่อมต่อ Firebase สำเร็จแล้ว!");
+
+  window.onload = init;
 </script>
 </body>
 </html>
