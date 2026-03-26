@@ -1,198 +1,42 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ระบบบันทึกค่าใช้จ่าย | ไทย สแทร์ (Real-time)</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ไทย สแทร์ | ระบบบันทึกค่าใช้จ่าย (Online)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --navy: #0d1b2a; --navy2: #1a2d42; --accent: #f4a261; --teal: #2ec4b6;
+            --white: #f8f9fa; --gray: #8899aa; --border: rgba(255,255,255,0.1);
+            --glass: rgba(255,255,255,0.05); --red: #ef476f;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Sarabun', sans-serif; background: var(--navy); color: var(--white); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-family: 'Sarabun'; transition: 0.2s; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-ghost { background: var(--glass); color: var(--white); border: 1px solid var(--border); }
 
-<style>
-  :root {
-    --navy: #0d1b2a; --navy2: #1a2d42; --accent: #f4a261; --teal: #2ec4b6;
-    --white: #f8f9fa; --gray: #8899aa; --border: rgba(255,255,255,0.08);
-    --glass: rgba(255,255,255,0.06); --red: #ef476f;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Sarabun', sans-serif; background: var(--navy); color: var(--white);
-    min-height: 100vh; line-height: 1.6;
-  }
-  #app { max-width: 1000px; margin: 0 auto; padding: 20px; }
-  .header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 20px 0; border-bottom: 1px solid var(--border); margin-bottom: 30px;
-  }
-  .btn {
-    padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
-    font-weight: 600; font-family: 'Sarabun'; transition: 0.2s;
-  }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-ghost { background: var(--glass); color: var(--white); border: 1px solid var(--border); }
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
-  .stat-card { background: var(--glass); padding: 20px; border-radius: 15px; border: 1px solid var(--border); }
-  .stat-label { font-size: 0.8rem; color: var(--gray); text-transform: uppercase; }
-  .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--accent); font-family: 'IBM Plex Mono'; }
-  .table-container { background: var(--glass); border-radius: 15px; border: 1px solid var(--border); overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; min-width: 600px; }
-  th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); }
-  th { font-size: 0.8rem; color: var(--gray); }
-  tr:hover { background: rgba(255,255,255,0.02); }
-  
-  /* Modal */
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
-    display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal { background: var(--navy2); padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; border: 1px solid var(--border); }
-  .form-group { margin-bottom: 15px; }
-  label { display: block; font-size: 0.9rem; margin-bottom: 5px; color: var(--gray); }
-  input, select {
-    width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
-    background: rgba(255,255,255,0.05); color: #fff; outline: none;
-  }
-  input:focus { border-color: var(--accent); }
-  .toast {
-    position: fixed; bottom: 20px; right: 20px; background: var(--teal);
-    color: #fff; padding: 12px 24px; border-radius: 10px; display: none; z-index: 2000;
-  }
-</style>
-</head>
-<body>
+        /* Stats Card */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .card { background: var(--glass); padding: 20px; border-radius: 15px; border: 1px solid var(--border); }
+        .card-label { color: var(--gray); font-size: 0.85rem; margin-bottom: 5px; }
+        .card-value { font-family: 'IBM Plex Mono'; font-size: 1.8rem; font-weight: 600; color: var(--accent); }
 
-<div id="app">
-  <div class="header">
-    <div>
-      <h1 style="letter-spacing: 1px;">THAI STAIR</h1>
-      <p style="color: var(--gray); font-size: 0.8rem;">ระบบบันทึกค่าใช้จ่ายส่วนกลาง (Real-time)</p>
-    </div>
-    <button class="btn btn-primary" onclick="openAddModal()">+ เพิ่มรายการ</button>
-  </div>
-
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">ยอดรวมเดือนนี้</div>
-      <div id="totalMonth" class="stat-value">฿0.00</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">ยอดรวมทั้งหมด</div>
-      <div id="totalAll" class="stat-value">฿0.00</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">จำนวนรายการ</div>
-      <div id="entryCount" class="stat-value" style="color: var(--white)">0</div>
-    </div>
-  </div>
-
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>วันที่</th>
-          <th>หมวดหมู่</th>
-          <th>รายละเอียด</th>
-          <th style="text-align: right;">รวมสุทธิ</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="entriesTbody">
-        </tbody>
-    </table>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <h2 id="modalTitle" style="margin-bottom: 20px;">เพิ่มรายการใหม่</h2>
-    <div class="form-group">
-      <label>วันที่</label>
-      <input type="date" id="fDate">
-    </div>
-    <div class="form-group">
-      <label>หมวดหมู่</label>
-      <select id="fCat">
-        <option>ค่าวัสดุสิ้นเปลือง</option>
-        <option>ค่าซ่อมบำรุง</option>
-        <option>ค่าเดินทาง / เบี้ยเลี้ยง</option>
-        <option>ค่าสาธารณูปโภค</option>
-        <option>ค่าใช้จ่ายงานไทยซัน</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>รายละเอียด</label>
-      <input type="text" id="fDesc" placeholder="เช่น ซื้อน็อต, ค่าไฟ...">
-    </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-      <div class="form-group">
-        <label>เงินต้น</label>
-        <input type="number" id="fAmt" placeholder="0.00" oninput="calcVAT()">
-      </div>
-      <div class="form-group">
-        <label>VAT 7%</label>
-        <input type="number" id="fVat" placeholder="0.00">
-      </div>
-    </div>
-    <div style="margin-top: 20px; display: flex; gap: 10px;">
-      <button class="btn btn-primary" style="flex: 2;" onclick="saveEntry()">บันทึกข้อมูล</button>
-      <button class="btn btn-ghost" style="flex: 1;" onclick="closeModal()">ยกเลิก</button>
-      <button id="delBtn" class="btn" style="background: var(--red); color: #fff; display: none;" onclick="deleteEntry()">ลบ</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast">บันทึกสำเร็จ!</div>
-
-<script>
-// --- ส่วนเชื่อมต่อ Firebase (ใช้ค่าที่คุณให้มา) ---
-const firebaseConfig = {
-  apiKey: "AIzaSyAeseMnoxbVhxNioVBVoz5A9xFj9Xy-E48",
-  authDomain: "thai-stair-expense.firebaseapp.com",
-  databaseURL: "https://thai-stair-expense-default-rtdb.firebaseio.com",
-  projectId: "thai-stair-expense",
-  storageBucket: "thai-stair-expense.firebasestorage.app",
-  messagingSenderId: "407584930422",
-  appId: "1:407584930422:web:e7c55726982de240373d57",
-  measurementId: "G-207CGC3YYK"
-};
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-let entries = [];
-let editId = null;
-
-// ดึงข้อมูล Real-time
-function init() {
-  db.ref('expenses').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      entries = Object.keys(data).map(key => ({ ...data[key], fbId: key }));
-      entries.sort((a, b) => b.date.localeCompare(a.date)); // เรียงวันที่ล่าสุดขึ้นก่อน
-    } else {
-      entries = [];
-    }
-    renderUI();
-  });
-}
-
-function renderUI() {
-  const tbody = document.getElementById('entriesTbody');
-  const now = new Date();
-  const currentMonth = now.toISOString().substring(0, 7); // "YYYY-MM"
-  
-  let totalAll = 0;
-  let totalMonth = 0;
-
-  tbody.innerHTML = entries.map(e => {
-    const sum = Number(e.amt) + Number(e.vat);
-    totalAll += sum;
-    if (e.date.startsWith(currentMonth)) totalMonth += sum;
-
-    return `
-      <tr>
-        <td><span style="font-family: 'IBM Plex Mono'; font-size: 0.85
+        /* Table & Layout */
+        .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+        
+        .panel { background: var(--glass); border-radius: 15px; border: 1px solid var(--border); padding: 20px; }
+        .panel-title { margin-bottom: 15px; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px
