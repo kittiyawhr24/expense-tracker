@@ -765,7 +765,7 @@ function showShareModal(){
 }
 function generateShareLink(){
   const data = btoa(JSON.stringify(entries));
-  const url  = `${location.origin}${location.pathname}?data=${data}`;
+  const url = window.location.href.split('?')[0] + '?data=' + btoa(unescape(encodeURIComponent(JSON.stringify(entries))));
   document.getElementById('shareLinkInput').value = url;
 }
 function copyShareLink(){
