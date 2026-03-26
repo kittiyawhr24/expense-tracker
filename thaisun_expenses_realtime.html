@@ -5,74 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ระบบบันทึกค่าใช้จ่าย | ไทย สแทร์</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, set, push, remove, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-  // ===================================================
-  //  🔧 วางค่า Firebase Config ของคุณที่นี่
-  //     ไปที่ https://console.firebase.google.com/
-  //     สร้าง Project > Realtime Database > Project Settings > Your apps > SDK setup
-  // ===================================================
-  const firebaseConfig = {
-    apiKey:            "YOUR_API_KEY",
-    authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-    databaseURL:       "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId:         "YOUR_PROJECT_ID",
-    storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId:             "YOUR_APP_ID"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
-
-  // ──────────────────────────────────────────────────
-  //  ดึง roomId จาก URL  ?room=xxx  หรือสร้างใหม่
-  // ──────────────────────────────────────────────────
-  function getRoomId() {
-    const params = new URLSearchParams(window.location.search);
-    let room = params.get('room');
-    if (!room) {
-      room = Math.random().toString(36).slice(2, 9);
-      const newUrl = window.location.origin + window.location.pathname + '?room=' + room;
-      window.history.replaceState({}, '', newUrl);
-    }
-    return room;
-  }
-
-  const ROOM_ID = getRoomId();
-  const entriesRef = ref(db, `rooms/${ROOM_ID}/entries`);
-
-  // expose to window so non-module functions can call
-  window._firebase = { db, ref, set, push, remove, get, entriesRef, ROOM_ID };
-
-  // ──────────────────────────────────────────────────
-  //  Real-time listener: อัพเดท UI ทุกครั้งที่ข้อมูลเปลี่ยน
-  // ──────────────────────────────────────────────────
-  onValue(entriesRef, (snapshot) => {
-    const raw = snapshot.val();
-    window.entries = raw ? Object.entries(raw).map(([key, val]) => ({ _key: key, ...val })) : [];
-    window.entries.sort((a, b) => (a.date < b.date ? -1 : 1));
-
-    // Re-render แท็บที่กำลังแสดงอยู่
-    const activeTab = document.querySelector('.tab.active');
-    if (activeTab) {
-      const tabs = ['dashboard','entries','monthly'];
-      const idx  = [...document.querySelectorAll('.tab')].indexOf(activeTab);
-      if (tabs[idx]) window.renderTab(tabs[idx]);
-    }
-
-    // อัพเดท status bar
-    const bar = document.getElementById('syncBar');
-    if (bar) {
-      bar.innerHTML = `🟢 เชื่อมต่อ Real-time &nbsp;·&nbsp; ห้อง: <b>${ROOM_ID}</b> &nbsp;·&nbsp; ${window.entries.length} รายการ`;
-    }
-  });
-</script>
-
 <style>
   :root {
     --navy:    #0d1b2a;
@@ -106,20 +38,7 @@
       radial-gradient(ellipse 40% 40% at 50% 50%, rgba(26,45,66,.9) 0%, transparent 100%);
     pointer-events:none;z-index:0;
   }
-
-  /* ── Sync status bar ── */
-  #syncBar{
-    position:fixed;top:0;left:0;right:0;z-index:50;
-    background:rgba(13,27,42,.92);backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--border);
-    font-size:12px;color:var(--gray);
-    padding:6px 24px;text-align:center;
-    font-family:'IBM Plex Mono',monospace;letter-spacing:.4px;
-  }
-  #syncBar b { color: var(--teal); }
-
-  #app{position:relative;z-index:1;max-width:1400px;margin:40px auto 0;padding:0 24px 80px}
-
+  #app{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:0 24px 80px}
   .topbar{
     display:flex;align-items:center;justify-content:space-between;
     padding:20px 0 16px;border-bottom:1px solid var(--border);
@@ -171,8 +90,8 @@
   .stat-val.teal{color:var(--teal)}
   .stat-val.gold{color:var(--gold)}
   .panel{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px}
-  .panel-title{font-size:16px;font-weight:700;margin-bottom:22px;display:flex;align-items:center;gap:10px;}
-  .panel-title span{width:6px;height:22px;background:linear-gradient(var(--accent),var(--accent2));border-radius:3px;display:inline-block;}
+  .panel-title{font-size:16px;font-weight:700;margin-bottom:22px; display:flex;align-items:center;gap:10px;}
+  .panel-title span{ width:6px;height:22px;background:linear-gradient(var(--accent),var(--accent2)); border-radius:3px;display:inline-block; }
   .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
   .form-group{display:flex;flex-direction:column;gap:6px}
   .form-group.full{grid-column:1/-1}
@@ -180,82 +99,29 @@
   input,select,textarea{
     background:rgba(255,255,255,.06);border:1px solid var(--border);
     border-radius:8px;padding:11px 14px;color:var(--white);
-    font-family:'Sarabun',sans-serif;font-size:14px;outline:none;
+    font-family:'Sarabun',sans-serif;font-size:14px; outline:none;
   }
-  input:focus,select:focus,textarea:focus{border-color:var(--accent);background:rgba(244,162,97,.08);}
+  input:focus,select:focus,textarea:focus{ border-color:var(--accent);background:rgba(244,162,97,.08); }
   .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
   table{width:100%;border-collapse:collapse;font-size:14px}
   thead tr{background:rgba(255,255,255,.06)}
-  th{padding:13px 16px;text-align:left;font-size:12px;font-weight:700;color:var(--gray);border-bottom:1px solid var(--border);white-space:nowrap;}
+  th{ padding:13px 16px;text-align:left;font-size:12px;font-weight:700; color:var(--gray);border-bottom:1px solid var(--border);white-space:nowrap; }
   tbody tr{border-bottom:1px solid var(--border);}
   td{padding:13px 16px;vertical-align:middle}
   .td-num{font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right}
-  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .cat-badge{ display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600; }
+  .modal-overlay{ position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100; display:flex;align-items:center;justify-content:center;padding:20px; opacity:0;pointer-events:none;transition:opacity .25s; }
   .modal-overlay.open{opacity:1;pointer-events:all}
-  .modal{background:var(--navy2);border:1px solid var(--border);border-radius:18px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:28px;}
-  .toast{position:fixed;bottom:28px;right:28px;z-index:999;background:var(--green);color:var(--navy);padding:13px 20px;border-radius:10px;font-weight:600;font-size:14px;transform:translateY(80px);opacity:0;transition:all .3s;}
+  .modal{ background:var(--navy2);border:1px solid var(--border);border-radius:18px; width:100%;max-width:560px;max-height:90vh;overflow-y:auto; padding:28px; }
+  .toast{ position:fixed;bottom:28px;right:28px;z-index:999; background:var(--green);color:var(--navy);padding:13px 20px; border-radius:10px;font-weight:600;font-size:14px; transform:translateY(80px);opacity:0;transition:all .3s; }
   .toast.show{transform:translateY(0);opacity:1}
   .toast.error{background:var(--red);color:#fff}
   .page{display:none}.page.active{display:block}
   .month-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-  .month-card{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:18px 20px;cursor:pointer;}
-
-  /* ── Setup overlay ── */
-  #setupOverlay{
-    position:fixed;inset:0;background:rgba(13,27,42,.97);z-index:200;
-    display:flex;align-items:center;justify-content:center;padding:24px;
-  }
-  .setup-box{
-    background:var(--navy2);border:1px solid var(--border);border-radius:20px;
-    padding:36px;max-width:540px;width:100%;
-  }
-  .setup-box h2{font-size:20px;margin-bottom:8px}
-  .setup-box p{color:var(--gray);font-size:13px;line-height:1.7;margin-bottom:20px}
-  .setup-box pre{
-    background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;
-    padding:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;
-    color:var(--teal);overflow-x:auto;margin-bottom:20px;white-space:pre-wrap;
-  }
-  .setup-box input{width:100%;margin-bottom:10px;}
-  .step-num{
-    display:inline-flex;align-items:center;justify-content:center;
-    width:22px;height:22px;border-radius:50%;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));
-    font-size:12px;font-weight:700;color:#fff;margin-right:8px;flex-shrink:0;
-  }
-  .step{display:flex;align-items:flex-start;gap:4px;margin-bottom:16px;font-size:13px;line-height:1.6}
+  .month-card{ background:var(--glass);border:1px solid var(--border);border-radius:14px; padding:18px 20px;cursor:pointer; }
 </style>
 </head>
 <body>
-
-<!-- ── Setup Overlay (แสดงเมื่อยังไม่ได้ตั้งค่า Firebase) ── -->
-<div id="setupOverlay" style="display:none">
-  <div class="setup-box">
-    <h2>⚙️ ตั้งค่า Firebase ครั้งแรก</h2>
-    <p>เพื่อให้ระบบ sync real-time ได้ ต้องใส่ค่า Firebase Config ของคุณใน code ก่อนนะครับ ทำตามขั้นตอนนี้:</p>
-    
-    <div class="step"><span class="step-num">1</span><div>ไปที่ <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--teal)">console.firebase.google.com</a> แล้วสร้าง Project ใหม่</div></div>
-    <div class="step"><span class="step-num">2</span><div>ไปที่ <b>Build → Realtime Database</b> แล้วกด "Create database" เลือก <b>Start in test mode</b></div></div>
-    <div class="step"><span class="step-num">3</span><div>ไปที่ <b>Project Settings (⚙️) → Your apps → Add app → Web</b> แล้วคัดลอก firebaseConfig</div></div>
-    <div class="step"><span class="step-num">4</span><div>เปิดไฟล์ HTML นี้ด้วย text editor แล้วแทนที่ค่า <code style="color:var(--gold)">YOUR_...</code> ในส่วน firebaseConfig ด้านบน</div></div>
-
-    <pre>const firebaseConfig = {
-  apiKey:            "AIzaSy...",
-  authDomain:        "my-project.firebaseapp.com",
-  databaseURL:       "https://my-project-default-rtdb.asia-southeast1...",
-  projectId:         "my-project",
-  storageBucket:     "my-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId:             "1:123456789:web:abc123"
-};</pre>
-    <button class="btn btn-primary" style="width:100%" onclick="document.getElementById('setupOverlay').style.display='none'">เข้าใจแล้ว ปิดหน้านี้</button>
-  </div>
-</div>
-
-<!-- ── Sync Status Bar ── -->
-<div id="syncBar" style="font-size:12px;color:#8899aa;padding:6px 24px;text-align:center;font-family:'IBM Plex Mono',monospace;background:rgba(13,27,42,.92);border-bottom:1px solid rgba(255,255,255,.08);">
-  ⏳ กำลังเชื่อมต่อ Firebase...
-</div>
 
 <div id="app">
   <div class="topbar">
@@ -268,7 +134,7 @@
     </div>
     <div class="topbar-right">
       <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
-      <button class="btn btn-teal btn-sm" onclick="copyRoomLink()">🔗 แชร์ Link</button>
+      <button class="btn btn-teal btn-sm" onclick="showShareModal()">🔗 แชร์ Link</button>
       <button class="btn btn-primary" onclick="openAddModal()">+ เพิ่มรายการ</button>
     </div>
   </div>
@@ -334,7 +200,7 @@
       <div class="form-group"><label>ใบเสร็จ</label><select id="fReceipt"><option>มี</option><option>ไม่มี</option></select></div>
       <div class="form-group full"><label>หมายเหตุ</label><textarea id="fNote"></textarea></div>
     </div>
-    <div style="margin-top:20px;display:flex;gap:10px">
+    <div style="margin-top:20px; display:flex; gap:10px">
       <button class="btn btn-primary" onclick="saveEntry()">บันทึก</button>
       <button class="btn btn-ghost" onclick="closeModal('addModal')">ยกเลิก</button>
       <button class="btn btn-danger btn-sm" id="deleteBtn" style="margin-left:auto" onclick="deleteEntry()">ลบ</button>
@@ -342,34 +208,56 @@
   </div>
 </div>
 
+<!-- MODAL SHARE -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal" style="max-width:450px">
+    <h3>🔗 สร้างลิงก์สำหรับแชร์ข้อมูล</h3>
+    <p style="font-size:12px; color:var(--gray); margin:10px 0 20px">ข้อมูลทั้งหมดจะถูกเข้ารหัสไว้ใน URL ผู้รับจะสามารถดูข้อมูลได้ทันที</p>
+    <input type="text" id="shareLinkInput" readonly style="width:100%; font-size:11px; margin-bottom:15px; color:var(--teal)">
+    <div style="display:flex; gap:10px">
+      <button class="btn btn-teal" onclick="generateShareLink()">สร้างลิงก์</button>
+      <button class="btn btn-primary" onclick="copyShareLink()">คัดลอก</button>
+      <button class="btn btn-ghost" onclick="closeModal('shareModal')">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
-// ─────────────────────────────────────────
-//  Constants
-// ─────────────────────────────────────────
+const STORAGE_KEY = 'thaisun_expenses_v3';
 const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const CATS = [
-  {name:'ค่าวัสดุสิ้นเปลือง',      color:'#f4a261', bg:'rgba(244,162,97,.15)'},
-  {name:'ค่าซ่อมบำรุง',            color:'#06d6a0', bg:'rgba(6,214,160,.15)'},
+  {name:'ค่าวัสดุสิ้นเปลือง', color:'#f4a261', bg:'rgba(244,162,97,.15)'},
+  {name:'ค่าซ่อมบำรุง', color:'#06d6a0', bg:'rgba(6,214,160,.15)'},
   {name:'ค่าเดินทาง / เบี้ยเลี้ยง', color:'#ffd166', bg:'rgba(255,209,102,.15)'},
-  {name:'ค่าสาธารณูปโภค',           color:'#2ec4b6', bg:'rgba(46,196,182,.15)'},
-  {name:'ค่าใช้จ่ายงานไทยซัน',      color:'#e76f51', bg:'rgba(231,111,81,.15)'},
+  {name:'ค่าสาธารณูปโภค', color:'#2ec4b6', bg:'rgba(46,196,182,.15)'},
+  {name:'ค่าใช้จ่ายงานไทยซัน', color:'#e76f51', bg:'rgba(231,111,81,.15)'},
 ];
 
-window.entries = [];
-let editKey = null;   // Firebase key ของ entry ที่กำลัง edit
+let entries = [];
+let editId = null;
 
-// ─────────────────────────────────────────
-//  Helpers
-// ─────────────────────────────────────────
 function fmt(n){ return (+n||0).toLocaleString('th-TH',{minimumFractionDigits:2}) }
+function showToast(m, type='success'){ 
+  const t = document.getElementById('toast'); 
+  t.textContent = m; t.className = 'toast show ' + (type==='error'?'error':'');
+  setTimeout(()=>t.className='toast', 3000);
+}
 
-function showToast(m, type='success'){
-  const t = document.getElementById('toast');
-  t.textContent = m;
-  t.className = 'toast show ' + (type==='error' ? 'error' : '');
-  setTimeout(() => t.className = 'toast', 3000);
+function init(){
+  const params = new URLSearchParams(window.location.search);
+  const sharedData = params.get('data');
+  if(sharedData){
+    try {
+      entries = JSON.parse(decodeURIComponent(escape(atob(sharedData))));
+      showToast('แสดงข้อมูลจาก Link แชร์', 'info');
+    } catch(e) { entries = []; }
+  } else {
+    entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  }
+  populateCats();
+  switchTab('dashboard');
 }
 
 function populateCats(){
@@ -381,28 +269,19 @@ function calcVAT(){
   document.getElementById('fVat').value = (amt * 0.07).toFixed(2);
 }
 
-// ─────────────────────────────────────────
-//  Tabs & Render
-// ─────────────────────────────────────────
 function switchTab(t){
-  document.querySelectorAll('.tab').forEach((el,i) =>
-    el.classList.toggle('active', ['dashboard','entries','monthly'][i] === t));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + t).classList.add('active');
-  renderTab(t);
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active', ['dashboard','entries','monthly'][i]===t));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+t).classList.add('active');
+  if(t==='dashboard') renderDash();
+  if(t==='entries') renderEntries();
+  if(t==='monthly') renderMonthly();
 }
 
-window.renderTab = function(t) {
-  if (t === 'dashboard') renderDash();
-  if (t === 'entries')   renderEntries();
-  if (t === 'monthly')   renderMonthly();
-};
-
 function renderDash(){
-  const entries = window.entries;
-  const total = entries.reduce((s,e) => s + (+e.amt) + (+e.vat), 0);
-  const thisMonth = entries.filter(e => new Date(e.date).getMonth() === new Date().getMonth());
-  const monthTotal = thisMonth.reduce((s,e) => s + (+e.amt) + (+e.vat), 0);
+  const total = entries.reduce((s,e)=>s+(+e.amt)+(+e.vat), 0);
+  const thisMonth = entries.filter(e=>new Date(e.date).getMonth() === new Date().getMonth());
+  const monthTotal = thisMonth.reduce((s,e)=>s+(+e.amt)+(+e.vat), 0);
 
   document.getElementById('statsGrid').innerHTML = `
     <div class="stat-card"><div class="stat-label">ยอดรวมทั้งหมด</div><div class="stat-val orange">฿${fmt(total)}</div></div>
@@ -410,29 +289,15 @@ function renderDash(){
     <div class="stat-card"><div class="stat-label">จำนวนรายการ</div><div class="stat-val gold">${entries.length}</div></div>
   `;
 
-  document.getElementById('recentList').innerHTML = entries.slice(-5).reverse().map(e => `
-    <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
+  document.getElementById('recentList').innerHTML = entries.slice(-5).reverse().map(e=>`
+    <div style="padding:10px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between">
       <span>${e.desc}</span><span style="color:var(--accent)">฿${fmt((+e.amt)+(+e.vat))}</span>
     </div>
-  `).join('') || '<div style="color:var(--gray);font-size:13px">ยังไม่มีรายการ</div>';
-
-  // Category breakdown
-  const catMap = {};
-  thisMonth.forEach(e => {
-    catMap[e.cat] = (catMap[e.cat] || 0) + (+e.amt + +e.vat);
-  });
-  document.getElementById('catBreakdown').innerHTML = Object.entries(catMap).map(([name, total]) => {
-    const cat = CATS.find(c => c.name === name) || { color:'#8899aa', bg:'rgba(136,153,170,.15)' };
-    return `
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;background:${cat.bg};color:${cat.color};padding:3px 10px;border-radius:20px">${name}</span>
-        <span style="color:var(--white);font-family:'IBM Plex Mono',monospace;font-size:13px">฿${fmt(total)}</span>
-      </div>`;
-  }).join('') || '<div style="color:var(--gray);font-size:13px">ยังไม่มีรายการเดือนนี้</div>';
+  `).join('');
 }
 
 function renderEntries(){
-  document.getElementById('entriesTbody').innerHTML = window.entries.map(e => `
+  document.getElementById('entriesTbody').innerHTML = entries.map(e=>`
     <tr>
       <td>${e.date}</td>
       <td>${e.cat}</td>
@@ -440,118 +305,96 @@ function renderEntries(){
       <td class="td-num">${fmt(e.amt)}</td>
       <td class="td-num">${fmt(e.vat)}</td>
       <td class="td-num" style="color:var(--accent)">${fmt((+e.amt)+(+e.vat))}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openEditModal('${e._key}')">แก้ไข</button></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openEditModal(${e.id})">แก้ไข</button></td>
     </tr>
-  `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:32px">ยังไม่มีรายการ</td></tr>';
+  `).join('');
 }
 
 function renderMonthly(){
   const groups = {};
-  window.entries.forEach(e => {
+  entries.forEach(e => {
     const m = new Date(e.date).getMonth();
     groups[m] = (groups[m] || 0) + (+e.amt + +e.vat);
   });
-  document.getElementById('monthlyCards').innerHTML = MONTHS_TH.map((m,i) => `
+  document.getElementById('monthlyCards').innerHTML = MONTHS_TH.map((m,i)=>`
     <div class="month-card">
       <div style="font-weight:700">${m}</div>
-      <div style="font-size:20px;color:var(--accent)">฿${fmt(groups[i]||0)}</div>
+      <div style="font-size:20px; color:var(--accent)">฿${fmt(groups[i]||0)}</div>
     </div>
   `).join('');
 }
 
-// ─────────────────────────────────────────
-//  Modal
-// ─────────────────────────────────────────
 function openAddModal(){
-  editKey = null;
+  editId = null;
   document.getElementById('modalTitle').textContent = 'เพิ่มรายการ';
   document.getElementById('deleteBtn').style.display = 'none';
   document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
-  ['fDesc','fAmt','fVat','fNote'].forEach(id => document.getElementById(id).value = '');
+  ['fDesc','fAmt','fVat','fNote'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('addModal').classList.add('open');
 }
 
-function openEditModal(key){
-  editKey = key;
-  const e = window.entries.find(x => x._key === key);
-  if (!e) return;
+function openEditModal(id){
+  editId = id;
+  const e = entries.find(x=>x.id===id);
   document.getElementById('modalTitle').textContent = 'แก้ไขรายการ';
   document.getElementById('deleteBtn').style.display = 'block';
-  document.getElementById('fDate').value    = e.date;
-  document.getElementById('fCat').value     = e.cat;
-  document.getElementById('fDesc').value    = e.desc;
-  document.getElementById('fAmt').value     = e.amt;
-  document.getElementById('fVat').value     = e.vat;
+  document.getElementById('fDate').value = e.date;
+  document.getElementById('fCat').value = e.cat;
+  document.getElementById('fDesc').value = e.desc;
+  document.getElementById('fAmt').value = e.amt;
+  document.getElementById('fVat').value = e.vat;
   document.getElementById('fReceipt').value = e.receipt;
-  document.getElementById('fNote').value    = e.note;
+  document.getElementById('fNote').value = e.note;
   document.getElementById('addModal').classList.add('open');
 }
 
+function saveEntry(){
+  const data = {
+    id: editId || Date.now(),
+    date: document.getElementById('fDate').value,
+    cat: document.getElementById('fCat').value,
+    desc: document.getElementById('fDesc').value,
+    amt: +document.getElementById('fAmt').value,
+    vat: +document.getElementById('fVat').value,
+    receipt: document.getElementById('fReceipt').value,
+    note: document.getElementById('fNote').value
+  };
+  if(editId) entries = entries.map(x=>x.id===editId?data:x);
+  else entries.push(data);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  closeModal('addModal');
+  switchTab('dashboard');
+  showToast('บันทึกเรียบร้อย');
+}
+
+function deleteEntry(){
+  if(!confirm('ยืนยันการลบ?')) return;
+  entries = entries.filter(x=>x.id!==editId);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  closeModal('addModal');
+  switchTab('dashboard');
+}
+
+function showShareModal(){ document.getElementById('shareModal').classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
-// ─────────────────────────────────────────
-//  CRUD  →  Firebase
-// ─────────────────────────────────────────
-async function saveEntry(){
-  const { db, ref, set, push, entriesRef } = window._firebase || {};
-  if (!db) { showToast('Firebase ยังไม่ได้ตั้งค่า', 'error'); return; }
-
-  const data = {
-    date:    document.getElementById('fDate').value,
-    cat:     document.getElementById('fCat').value,
-    desc:    document.getElementById('fDesc').value,
-    amt:     +document.getElementById('fAmt').value,
-    vat:     +document.getElementById('fVat').value,
-    receipt: document.getElementById('fReceipt').value,
-    note:    document.getElementById('fNote').value,
-  };
-
-  try {
-    if (editKey) {
-      // Update existing entry
-      await set(ref(db, `rooms/${window._firebase.ROOM_ID}/entries/${editKey}`), data);
-    } else {
-      // Push new entry
-      await push(entriesRef, data);
-    }
-    closeModal('addModal');
-    showToast('บันทึกเรียบร้อย ✓');
-  } catch(err) {
-    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-  }
+function generateShareLink(){
+  const json = JSON.stringify(entries);
+  const base64 = btoa(unescape(encodeURIComponent(json)));
+  const url = window.location.origin + window.location.pathname + '?data=' + base64;
+  document.getElementById('shareLinkInput').value = url;
 }
 
-async function deleteEntry(){
-  if (!confirm('ยืนยันการลบ?')) return;
-  const { db, ref } = window._firebase || {};
-  if (!db) return;
-  try {
-    await window._firebase.remove(ref(db, `rooms/${window._firebase.ROOM_ID}/entries/${editKey}`));
-    closeModal('addModal');
-    showToast('ลบรายการเรียบร้อย');
-  } catch(err) {
-    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-  }
+function copyShareLink(){
+  const input = document.getElementById('shareLinkInput');
+  input.select();
+  document.execCommand('copy');
+  showToast('คัดลอกลิงก์แล้ว');
 }
 
-// ─────────────────────────────────────────
-//  Share  →  แค่คัดลอก URL ปัจจุบัน
-// ─────────────────────────────────────────
-function copyRoomLink(){
-  const url = window.location.href;
-  navigator.clipboard.writeText(url).then(() => {
-    showToast('คัดลอกลิงก์แล้ว 🔗 ส่งให้เพื่อนได้เลย!');
-  }).catch(() => {
-    prompt('คัดลอกลิงก์นี้:', url);
-  });
-}
-
-// ─────────────────────────────────────────
-//  Export CSV
-// ─────────────────────────────────────────
 function exportCSV(){
   let csv = "\uFEFFวันที่,หมวดหมู่,รายละเอียด,จำนวนเงิน,VAT,รวม\n";
-  window.entries.forEach(e => csv += `${e.date},${e.cat},${e.desc},${e.amt},${e.vat},${+e.amt + +e.vat}\n`);
+  entries.forEach(e=> csv += `${e.date},${e.cat},${e.desc},${e.amt},${e.vat},${+e.amt + +e.vat}\n`);
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -559,21 +402,27 @@ function exportCSV(){
   link.click();
 }
 
-// ─────────────────────────────────────────
-//  Init
-// ─────────────────────────────────────────
-window.onload = function(){
-  populateCats();
-  switchTab('dashboard');
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  // ตรวจว่า Firebase Config ยังเป็น placeholder อยู่ไหม
-  setTimeout(() => {
-    if (!window._firebase) {
-      document.getElementById('setupOverlay').style.display = 'flex';
-      document.getElementById('syncBar').innerHTML = '⚠️ กรุณาตั้งค่า Firebase ก่อนใช้งาน';
-    }
-  }, 2000);
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyCodQPSjtJGK7UUcPjaGH6a0Q-tWJ4gbLU",
+    authDomain: "factory-manager-eee47.firebaseapp.com",
+    databaseURL: "https://factory-manager-eee47-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "factory-manager-eee47",
+    storageBucket: "factory-manager-eee47.firebasestorage.app",
+    messagingSenderId: "486375965588",
+    appId: "1:486375965588:web:c30c66af6db1d98a1c0581",
+    measurementId: "G-5C7H4YX26B"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  console.log("เชื่อมต่อ Firebase สำเร็จแล้ว!");
+
+  window.onload = init; 
+</script>
 </script>
 </body>
 </html>
