@@ -759,40 +759,45 @@ function deleteEntry(){
 // ═══════════════════════════════════════════════════════
 // SHARE
 // ═══════════════════════════════════════════════════════
-function showShareModal(){
-  document.getElementById('shareLinkInput').value='';
-  document.getElementById('shareModal').classList.add('open');
-}
-function generateShareLink(){
-  const data = btoa(JSON.stringify(entries));
-  const url = window.location.href.split('?')[0] + '?data=' + btoa(unescape(encodeURIComponent(JSON.stringify(entries))));
-  document.getElementById('shareLinkInput').value = url;
-}
-function copyShareLink(){
-  const val = document.getElementById('shareLinkInput').value;
-  if(!val){ showToast('กด "สร้าง Link" ก่อน','error'); return; }
-  navigator.clipboard.writeText(val).then(()=>showToast('📋 คัดลอก Link แล้ว!'));
-}
-function copyLink(){
-  generateShareLink();
-  const val = document.getElementById('shareLinkInput').value;
-  navigator.clipboard.writeText(val).then(()=>showToast('📋 คัดลอก Link แล้ว!'));
+// ฟังก์ชันสร้าง Link แชร์ข้อมูล (เวอร์ชันแก้ไขให้รองรับ GitHub Pages และภาษาไทย)
+function generateShareLink() {
+  try {
+    // 1. แปลงข้อมูล entries เป็น JSON และจัดการภาษาไทยด้วย UTF-8
+    const jsonStr = JSON.stringify(entries);
+    const utf8Data = encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+        return String.fromCharCode('0x' + p1);
+    });
+    
+    // 2. บีบอัดเป็น Base64
+    const base64Data = btoa(utf8Data);
+    
+    // 3. สร้าง URL โดยตัด Parameter เดิมออกก่อน (ถ้ามี)
+    const baseUrl = window.location.href.split('?')[0];
+    const finalUrl = baseUrl + '?data=' + base64Data;
+    
+    // 4. แสดงผลในช่อง Input
+    const input = document.getElementById('shareLinkInput');
+    if (input) {
+      input.value = finalUrl;
+      showToast('🔄 สร้าง Link สำเร็จแล้ว!', 'success');
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('❌ เกิดข้อผิดพลาดในการสร้าง Link', 'error');
+  }
 }
 
-// ═══════════════════════════════════════════════════════
-// EXPORT CSV
-// ═══════════════════════════════════════════════════════
-function exportCSV(){
-  const rows = [['วันที่','หมวดหมู่','รายละเอียด','จำนวนเงิน','VAT','รวม','ใบเสร็จ','หมายเหตุ']];
-  [...entries].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
-    rows.push([e.date,e.cat,e.desc,e.amt,e.vat,(+e.amt||0)+(+e.vat||0),e.receipt,e.note]);
-  });
-  const csv = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
-  a.download = `expenses_${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  showToast('⬇ ดาวน์โหลด CSV แล้ว');
+// ฟังก์ชันคัดลอก Link
+function copyShareLink() {
+  const copyText = document.getElementById("shareLinkInput");
+  if (copyText && copyText.value) {
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); 
+    navigator.clipboard.writeText(copyText.value);
+    showToast('📋 คัดลอก Link ลงคลิปบอร์ดแล้ว!');
+  } else {
+    showToast('⚠️ กรุณากดปุ่มสร้าง Link ก่อน', 'error');
+  }
 }
 
 // ═══════════════════════════════════════════════════════
