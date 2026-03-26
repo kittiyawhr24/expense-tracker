@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบบันทึกค่าใช้จ่าย | ไทยซัน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:    #0d1b2a;
+    --navy2:   #1a2d42;
+    --navy3:   #243b55;
+    --accent:  #f4a261;
+    --accent2: #e76f51;
+    --teal:    #2ec4b6;
+    --green:   #06d6a0;
+    --red:     #ef476f;
+    --gold:    #ffd166;
+    --white:   #f8f9fa;
+    --gray:    #8899aa;
+    --border:  rgba(255,255,255,0.08);
+    --card:    rgba(255,255,255,0.04);
+    --glass:   rgba(255,255,255,0.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Sarabun',sans-serif;
+    background:var(--navy);
+    color:var(--white);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* ── BG mesh ── */
+  body::before{
+    content:'';position:fixed;inset:0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 10%, rgba(244,162,97,.12) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 80% 80%, rgba(46,196,182,.10) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(26,45,66,.9) 0%, transparent 100%);
+    pointer-events:none;z-index:0;
+  }
+
+  /* ── LAYOUT ── */
+  #app{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:0 24px 80px}
+
+  /* ── TOP BAR ── */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 0 16px;border-bottom:1px solid var(--border);
+    margin-bottom:32px;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand-logo{
+    width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:700;color:#fff;letter-spacing:-1px;
+    box-shadow:0 4px 20px rgba(244,162,97,.4);
+  }
+  .brand-text h1{font-size:17px;font-weight:700;letter-spacing:.5px}
+  .brand-text p{font-size:12px;color:var(--gray);font-family:'IBM Plex Mono',monospace}
+  .topbar-right{display:flex;gap:10px;align-items:center}
+  .btn{
+    padding:9px 18px;border-radius:8px;border:none;cursor:pointer;
+    font-family:'Sarabun',sans-serif;font-size:14px;font-weight:600;
+    transition:all .2s;display:flex;align-items:center;gap:7px;
+  }
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+    box-shadow:0 4px 14px rgba(244,162,97,.35);}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(244,162,97,.5)}
+  .btn-ghost{background:var(--glass);border:1px solid var(--border);color:var(--white)}
+  .btn-ghost:hover{background:rgba(255,255,255,.1)}
+  .btn-teal{background:linear-gradient(135deg,var(--teal),#25a99f);color:#fff;
+    box-shadow:0 4px 14px rgba(46,196,182,.3);}
+  .btn-teal:hover{transform:translateY(-1px)}
+  .btn-sm{padding:6px 12px;font-size:13px}
+  .btn-danger{background:rgba(239,71,111,.15);border:1px solid rgba(239,71,111,.3);color:var(--red)}
+  .btn-danger:hover{background:rgba(239,71,111,.25)}
+
+  /* ── TABS ── */
+  .tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--card);
+    border:1px solid var(--border);border-radius:12px;padding:5px;width:fit-content}
+  .tab{
+    padding:9px 22px;border-radius:8px;cursor:pointer;font-size:14px;
+    font-weight:600;transition:all .2s;color:var(--gray);border:none;background:none;
+    font-family:'Sarabun',sans-serif;
+  }
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#fff;box-shadow:0 3px 12px rgba(244,162,97,.4)}
+
+  /* ── STAT CARDS ── */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+  .stat-card{
+    background:var(--glass);border:1px solid var(--border);border-radius:14px;
+    padding:20px 22px;position:relative;overflow:hidden;
+  }
+  .stat-card::before{
+    content:'';position:absolute;top:0;right:0;width:80px;height:80px;
+    background:radial-gradient(var(--accent-local,rgba(244,162,97,.15)),transparent 70%);
+    border-radius:50%;transform:translate(20px,-20px);
+  }
+  .stat-label{font-size:12px;color:var(--gray);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
+  .stat-val{font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:-1px}
+  .stat-val.green{color:var(--green)}
+  .stat-val.orange{color:var(--accent)}
+  .stat-val.teal{color:var(--teal)}
+  .stat-val.gold{color:var(--gold)}
+  .stat-sub{font-size:12px;color:var(--gray);margin-top:4px}
+
+  /* ── FORM PANEL ── */
+  .panel{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px}
+  .panel-title{font-size:16px;font-weight:700;margin-bottom:22px;
+    display:flex;align-items:center;gap:10px;}
+  .panel-title span{
+    width:6px;height:22px;background:linear-gradient(var(--accent),var(--accent2));
+    border-radius:3px;display:inline-block;
+  }
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+  .form-group{display:flex;flex-direction:column;gap:6px}
+  .form-group.full{grid-column:1/-1}
+  label{font-size:13px;font-weight:600;color:var(--gray);letter-spacing:.4px}
+  input,select,textarea{
+    background:rgba(255,255,255,.06);border:1px solid var(--border);
+    border-radius:8px;padding:11px 14px;color:var(--white);
+    font-family:'Sarabun',sans-serif;font-size:14px;
+    transition:border-color .2s,background .2s;outline:none;
+  }
+  input:focus,select:focus,textarea:focus{
+    border-color:var(--accent);background:rgba(244,162,97,.08);
+  }
+  select option{background:var(--navy2);color:var(--white)}
+  textarea{resize:vertical;min-height:70px}
+  .form-actions{display:flex;gap:10px;margin-top:20px}
+
+  /* ── TABLE ── */
+  .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead tr{background:rgba(255,255,255,.06)}
+  th{
+    padding:13px 16px;text-align:left;font-size:12px;font-weight:700;
+    color:var(--gray);letter-spacing:.8px;text-transform:uppercase;
+    border-bottom:1px solid var(--border);white-space:nowrap;
+  }
+  tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+  tbody tr:hover{background:rgba(255,255,255,.03)}
+  tbody tr:last-child{border-bottom:none}
+  td{padding:13px 16px;vertical-align:middle}
+  .td-num{font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right}
+  .td-date{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--gray)}
+  .cat-badge{
+    display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;
+  }
+
+  /* ── MONTH SUMMARY ── */
+  .month-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .month-card{
+    background:var(--glass);border:1px solid var(--border);border-radius:14px;
+    padding:18px 20px;cursor:pointer;transition:all .2s;
+  }
+  .month-card:hover{border-color:rgba(244,162,97,.4);transform:translateY(-2px)}
+  .month-card.active-month{border-color:var(--accent);background:rgba(244,162,97,.08)}
+  .month-name{font-size:15px;font-weight:700;margin-bottom:12px;
+    display:flex;align-items:center;justify-content:space-between}
+  .month-total{font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;
+    color:var(--accent);letter-spacing:-1px}
+  .month-count{font-size:12px;color:var(--gray);margin-top:3px}
+  .month-bar-wrap{margin-top:12px;background:rgba(255,255,255,.06);height:4px;border-radius:2px}
+  .month-bar{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s ease}
+
+  /* category breakdown inside month detail */
+  .cat-row{display:flex;justify-content:space-between;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--border)}
+  .cat-row:last-child{border-bottom:none}
+  .cat-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px}
+
+  /* ── MODAL ── */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .modal-overlay.open{opacity:1;pointer-events:all}
+  .modal{
+    background:var(--navy2);border:1px solid var(--border);border-radius:18px;
+    width:100%;max-width:560px;max-height:90vh;overflow-y:auto;
+    padding:28px;transform:translateY(20px);transition:transform .25s;
+  }
+  .modal-overlay.open .modal{transform:translateY(0)}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+  .modal-title{font-size:18px;font-weight:700}
+  .close-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+    background:none;color:var(--gray);cursor:pointer;font-size:18px;
+    display:flex;align-items:center;justify-content:center}
+  .close-btn:hover{background:var(--glass);color:var(--white)}
+
+  /* ── VIEW TOGGLE ── */
+  .view-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:gap}
+
+  /* ── TOAST ── */
+  .toast{
+    position:fixed;bottom:28px;right:28px;z-index:999;
+    background:var(--green);color:var(--navy);padding:13px 20px;
+    border-radius:10px;font-weight:600;font-size:14px;
+    transform:translateY(80px);opacity:0;transition:all .3s;
+    box-shadow:0 8px 32px rgba(6,214,160,.4);
+  }
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.error{background:var(--red);color:#fff;box-shadow:0 8px 32px rgba(239,71,111,.4)}
+
+  /* ── EMPTY STATE ── */
+  .empty{text-align:center;padding:60px 20px;color:var(--gray)}
+  .empty-icon{font-size:48px;margin-bottom:16px;opacity:.5}
+  .empty h3{font-size:16px;font-weight:600;margin-bottom:8px;color:var(--white)}
+
+  /* ── FILTER ROW ── */
+  .filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+  .filter-row select,.filter-row input{max-width:180px}
+  .filter-count{font-size:13px;color:var(--gray);margin-left:auto}
+
+  /* ── SHARE BANNER ── */
+  .share-banner{
+    background:linear-gradient(135deg,rgba(46,196,182,.15),rgba(6,214,160,.08));
+    border:1px solid rgba(46,196,182,.3);border-radius:12px;
+    padding:16px 20px;display:flex;align-items:center;gap:14px;margin-bottom:24px;
+  }
+  .share-icon{font-size:24px}
+  .share-text{flex:1}
+  .share-text h4{font-size:14px;font-weight:700;margin-bottom:3px}
+  .share-text p{font-size:12px;color:var(--gray)}
+  .share-url{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal);
+    word-break:break-all;margin-top:4px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:768px){
+    .stats-grid{grid-template-columns:1fr 1fr}
+    .month-grid{grid-template-columns:1fr}
+    .form-grid{grid-template-columns:1fr}
+    .topbar{flex-direction:column;align-items:flex-start;gap:12px}
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .fade-in{animation:fadeIn .35s ease both}
+
+  /* ── PAGE sections ── */
+  .page{display:none}.page.active{display:block}
+
+  /* ── Divider ── */
+  .divider{height:1px;background:var(--border);margin:24px 0}
+
+  /* Print */
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar,.tabs,.btn,.modal-overlay,.toast,.share-banner{display:none!important}
+    .panel,.stat-card,.month-card{border:1px solid #ddd;background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-logo">TS</div>
+      <div class="brand-text">
+        <h1>ระบบบันทึกค่าใช้จ่าย</h1>
+        <p>THAI SUN CO., LTD. — Factory Manager</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn btn-teal btn-sm" onclick="showShareModal()">🔗 แชร์ Link</button>
+      <button class="btn btn-primary" onclick="openAddModal()">+ เพิ่มรายการ</button>
+    </div>
+  </div>
+
+  <!-- SHARE BANNER -->
+  <div class="share-banner">
+    <div class="share-icon">🔗</div>
+    <div class="share-text">
+      <h4>แชร์ข้อมูลแบบ Real-time</h4>
+      <p>ส่ง link ด้านล่างให้ผู้บริหารหรือทีมงาน — ข้อมูลอัปเดตอัตโนมัติ (บันทึกใน Browser Storage)</p>
+      <div class="share-url" id="shareUrlDisplay"></div>
+    </div>
+    <button class="btn btn-teal btn-sm" onclick="copyLink()">📋 คัดลอก</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab" onclick="switchTab('entries')">📋 รายการทั้งหมด</button>
+    <button class="tab" onclick="switchTab('monthly')">📅 สรุปรายเดือน</button>
+  </div>
+
+  <!-- ═══════════════════ PAGE: DASHBOARD ═══════════════════ -->
+  <div id="page-dashboard" class="page active">
+    <div class="stats-grid" id="statsGrid"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" id="dashPanels">
+      <div class="panel">
+        <div class="panel-title"><span></span>รายการล่าสุด 5 รายการ</div>
+        <div id="recentList"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span></span>ค่าใช้จ่ายตามหมวด (เดือนนี้)</div>
+        <div id="catBreakdown"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ PAGE: ENTRIES ═══════════════════ -->
+  <div id="page-entries" class="page">
+    <div class="filter-row">
+      <select id="filterCat" onchange="renderEntries()">
+        <option value="">ทุกหมวด</option>
+      </select>
+      <select id="filterMonth" onchange="renderEntries()">
+        <option value="">ทุกเดือน</option>
+      </select>
+      <input type="text" id="filterSearch" placeholder="🔍 ค้นหารายการ..." oninput="renderEntries()" style="max-width:220px">
+      <span class="filter-count" id="filterCount"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>วันที่</th>
+            <th>หมวดหมู่</th>
+            <th>รายละเอียด</th>
+            <th style="text-align:right">จำนวนเงิน</th>
+            <th style="text-align:right">VAT</th>
+            <th style="text-align:right">รวม</th>
+            <th>ใบเสร็จ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="entriesTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ PAGE: MONTHLY ═══════════════════ -->
+  <div id="page-monthly" class="page">
+    <div id="monthlyCards" class="month-grid"></div>
+    <div id="monthDetail" class="panel" style="display:none;margin-top:20px"></div>
+  </div>
+</div>
+
+<!-- ═══════ ADD/EDIT MODAL ═══════ -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">เพิ่มรายการค่าใช้จ่าย</div>
+      <button class="close-btn" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>วันที่ *</label>
+        <input type="date" id="fDate" required>
+      </div>
+      <div class="form-group">
+        <label>หมวดหมู่ *</label>
+        <select id="fCat">
+          <option value="">-- เลือกหมวด --</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>รายละเอียด *</label>
+        <input type="text" id="fDesc" placeholder="ระบุรายละเอียดค่าใช้จ่าย">
+      </div>
+      <div class="form-group">
+        <label>จำนวนเงิน (บาท, ไม่รวม VAT) *</label>
+        <input type="number" id="fAmt" placeholder="0.00" step="0.01" min="0" oninput="calcVAT()">
+      </div>
+      <div class="form-group">
+        <label>VAT 7% (บาท)</label>
+        <input type="number" id="fVat" placeholder="0.00" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>มีใบเสร็จ?</label>
+        <select id="fReceipt">
+          <option value="มี">มี</option>
+          <option value="ไม่มี">ไม่มี</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>หมายเหตุ</label>
+        <textarea id="fNote" placeholder="(ถ้ามี)"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveEntry()">💾 บันทึก</button>
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">ยกเลิก</button>
+      <button class="btn btn-danger btn-sm" id="deleteBtn" onclick="deleteEntry()" style="display:none;margin-left:auto">🗑 ลบรายการ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SHARE MODAL ═══════ -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">🔗 แชร์ข้อมูลค่าใช้จ่าย</div>
+      <button class="close-btn" onclick="closeModal('shareModal')">✕</button>
+    </div>
+    <div style="background:rgba(46,196,182,.1);border:1px solid rgba(46,196,182,.3);border-radius:10px;padding:16px;margin-bottom:18px">
+      <p style="font-size:13px;color:var(--teal);font-weight:600;margin-bottom:8px">📌 วิธีใช้งาน Link แชร์</p>
+      <p style="font-size:13px;color:var(--gray);line-height:1.7">
+        เมื่อคลิก "สร้าง Link แชร์" ระบบจะฝังข้อมูลทั้งหมดลงใน URL<br>
+        ผู้รับสามารถเปิด Link เพื่อดูข้อมูล <strong style="color:var(--white)">แบบ Read-only</strong> ได้ทันที
+      </p>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Link แชร์</label>
+      <input type="text" id="shareLinkInput" readonly style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--teal)">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-teal" onclick="generateShareLink()">🔄 สร้าง Link แชร์</button>
+      <button class="btn btn-primary" onclick="copyShareLink()">📋 คัดลอก Link</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA & CONFIG
+// ═══════════════════════════════════════════════════════
+const STORAGE_KEY = 'thaisun_expenses_v3';
+const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                   'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const CATS = [
+  {name:'ค่าวัสดุสิ้นเปลือง',  color:'#f4a261', bg:'rgba(244,162,97,.15)'},
+  {name:'ค่าซ่อมบำรุง',         color:'#06d6a0', bg:'rgba(6,214,160,.15)'},
+  {name:'ค่าเดินทาง / เบี้ยเลี้ยง', color:'#ffd166', bg:'rgba(255,209,102,.15)'},
+  {name:'ค่าสาธารณูปโภค',       color:'#2ec4b6', bg:'rgba(46,196,182,.15)'},
+  {name:'ค่าใช้จ่ายงานไทยซัน',  color:'#e76f51', bg:'rgba(231,111,81,.15)'},
+];
+let entries = [];
+let editId  = null;
+
+// ═══════════════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════════════
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)) }
+function loadData(){
+  // Check if shared data in URL
+  const params = new URLSearchParams(location.search);
+  const shared = params.get('data');
+  if(shared){
+    try{
+      entries = JSON.parse(atob(shared));
+      // Read-only mode
+      document.querySelectorAll('.btn-primary,.btn-teal,.btn-danger,.btn-ghost')
+        .forEach(b=>{ if(b.textContent.includes('เพิ่ม')||b.textContent.includes('Export')||b.textContent.includes('แชร์')) b.style.opacity='.4', b.style.pointerEvents='none'; });
+      showToast('📖 กำลังดูข้อมูลในโหมด Read-only','info');
+    }catch(e){ entries=[] }
+    return;
+  }
+  const raw = localStorage.getItem(STORAGE_KEY);
+  entries = raw ? JSON.parse(raw) : getSampleData();
+  if(!raw) saveData();
+}
+function getSampleData(){
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth()+1).padStart(2,'0');
+  return [
+    {id:1, date:`${y}-${m}-05`, cat:'ค่าวัสดุสิ้นเปลือง', desc:'น้ำมันหล่อลื่น SKF', amt:3200, vat:224, receipt:'มี', note:''},
+    {id:2, date:`${y}-${m}-08`, cat:'ค่าซ่อมบำรุง', desc:'ซ่อมปั๊มน้ำไลน์ A', amt:8500, vat:595, receipt:'มี', note:'ใบส่งงาน #0042'},
+    {id:3, date:`${y}-${m}-10`, cat:'ค่าเดินทาง / เบี้ยเลี้ยง', desc:'เดินทางไปโรงงานลพบุรี', amt:1800, vat:0, receipt:'มี', note:''},
+    {id:4, date:`${y}-${m}-14`, cat:'ค่าสาธารณูปโภค', desc:'ค่าไฟฟ้าประจำเดือน', amt:42000, vat:2940, receipt:'มี', note:''},
+    {id:5, date:`${y}-${m}-18`, cat:'ค่าใช้จ่ายงานไทยซัน', desc:'วัสดุโครงการ TS-2025-07', amt:15600, vat:1092, receipt:'มี', note:'PO #TS-0128'},
+  ];
+}
+
+// ═══════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════
+function fmt(n){ return (+n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}) }
+function fmtShort(n){
+  n = +n||0;
+  if(n>=1000000) return (n/1000000).toFixed(1)+'M';
+  if(n>=1000) return (n/1000).toFixed(1)+'K';
+  return fmt(n);
+}
+function getCat(name){ return CATS.find(c=>c.name===name)||{color:'#8899aa',bg:'rgba(136,153,170,.15)'} }
+function catBadge(name){
+  const c = getCat(name);
+  return `<span class="cat-badge" style="color:${c.color};background:${c.bg}">${name}</span>`;
+}
+function showToast(msg, type='success'){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type==='error'?' error':'');
+  setTimeout(()=>t.className='toast',3000);
+}
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const tabs = ['dashboard','entries','monthly'];
+    t.classList.toggle('active', tabs[i]===tab);
+  });
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  if(tab==='dashboard') renderDashboard();
+  if(tab==='entries')   renderEntries();
+  if(tab==='monthly')   renderMonthly();
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open') }
+
+// ═══════════════════════════════════════════════════════
+// POPULATE SELECTS
+// ═══════════════════════════════════════════════════════
+function populateCatSelects(){
+  ['fCat','filterCat'].forEach(id=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    const keep = id==='filterCat' ? '<option value="">ทุกหมวด</option>' : '<option value="">-- เลือกหมวด --</option>';
+    sel.innerHTML = keep + CATS.map(c=>`<option>${c.name}</option>`).join('');
+  });
+  const fm = document.getElementById('filterMonth');
+  if(fm){
+    fm.innerHTML = '<option value="">ทุกเดือน</option>' +
+      MONTHS_TH.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDashboard(){
+  const now  = new Date();
+  const curM = now.getMonth()+1;
+  const curY = now.getFullYear();
+  const thisMonth = entries.filter(e=>{ const d=new Date(e.date); return d.getMonth()+1===curM && d.getFullYear()===curY });
+  const total  = entries.reduce((s,e)=>(s + (+e.amt||0) + (+e.vat||0)),0);
+  const monthT = thisMonth.reduce((s,e)=>(s + (+e.amt||0) + (+e.vat||0)),0);
+  const noRec  = entries.filter(e=>e.receipt==='ไม่มี').length;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card fade-in"><div class="stat-label">ยอดรวมทั้งปี</div>
+      <div class="stat-val orange">฿${fmtShort(total)}</div>
+      <div class="stat-sub">${entries.length} รายการ</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">เดือน${MONTHS_TH[curM-1]}</div>
+      <div class="stat-val teal">฿${fmtShort(monthT)}</div>
+      <div class="stat-sub">${thisMonth.length} รายการ</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">จำนวนหมวดที่ใช้</div>
+      <div class="stat-val gold">${new Set(entries.map(e=>e.cat)).size}</div>
+      <div class="stat-sub">จาก ${CATS.length} หมวด</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">ไม่มีใบเสร็จ</div>
+      <div class="stat-val" style="color:${noRec>0?'var(--red)':'var(--green)'}">${noRec}</div>
+      <div class="stat-sub">รายการ</div></div>
+  `;
+
+  // Recent
+  const recent = [...entries].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  document.getElementById('recentList').innerHTML = recent.length ? recent.map(e=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:14px;font-weight:600">${e.desc}</div>
+        <div style="font-size:12px;color:var(--gray);margin-top:2px">${catBadge(e.cat)} · ${formatDateTH(e.date)}</div>
+      </div>
+      <div class="td-num" style="color:var(--accent)">฿${fmt((+e.amt||0)+(+e.vat||0))}</div>
+    </div>`).join('')
+    : '<div class="empty"><div class="empty-icon">📭</div><h3>ยังไม่มีรายการ</h3></div>';
+
+  // Category breakdown this month
+  const catTots = CATS.map(c=>{
+    const sum = thisMonth.filter(e=>e.cat===c.name).reduce((s,e)=>(s+(+e.amt||0)+(+e.vat||0)),0);
+    return {...c, sum};
+  }).filter(c=>c.sum>0).sort((a,b)=>b.sum-a.sum);
+  const maxSum = catTots[0]?.sum||1;
+  document.getElementById('catBreakdown').innerHTML = catTots.length ? catTots.map(c=>`
+    <div class="cat-row">
+      <div style="display:flex;align-items:center;font-size:14px">
+        <span class="cat-dot" style="background:${c.color}"></span>${c.name}
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:80px;height:4px;background:rgba(255,255,255,.06);border-radius:2px">
+          <div style="width:${(c.sum/maxSum*100).toFixed(0)}%;height:4px;border-radius:2px;background:${c.color}"></div>
+        </div>
+        <div class="td-num" style="min-width:90px;color:${c.color}">฿${fmt(c.sum)}</div>
+      </div>
+    </div>`).join('')
+    : '<div style="color:var(--gray);font-size:14px;padding:20px 0">ยังไม่มีรายการในเดือนนี้</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// ENTRIES TABLE
+// ═══════════════════════════════════════════════════════
+function renderEntries(){
+  const cat   = document.getElementById('filterCat')?.value||'';
+  const month = document.getElementById('filterMonth')?.value||'';
+  const search= (document.getElementById('filterSearch')?.value||'').toLowerCase();
+  let filtered = entries.filter(e=>{
+    if(cat    && e.cat!==cat) return false;
+    if(month  && new Date(e.date).getMonth()+1 !== +month) return false;
+    if(search && !e.desc.toLowerCase().includes(search) && !e.cat.toLowerCase().includes(search)) return false;
+    return true;
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('filterCount').textContent = `แสดง ${filtered.length} รายการ`;
+  document.getElementById('entriesTbody').innerHTML = filtered.length ? filtered.map((e,i)=>`
+    <tr class="fade-in">
+      <td style="color:var(--gray);font-size:12px">${i+1}</td>
+      <td class="td-date">${formatDateTH(e.date)}</td>
+      <td>${catBadge(e.cat)}</td>
+      <td style="max-width:240px">${e.desc}${e.note?`<br><span style="font-size:12px;color:var(--gray)">${e.note}</span>`:''}</td>
+      <td class="td-num">฿${fmt(e.amt)}</td>
+      <td class="td-num" style="color:var(--gray)">฿${fmt(e.vat)}</td>
+      <td class="td-num" style="color:var(--accent);font-weight:700">฿${fmt((+e.amt||0)+(+e.vat||0))}</td>
+      <td><span style="font-size:12px;color:${e.receipt==='มี'?'var(--green)':'var(--red)'}">${e.receipt==='มี'?'✓ มี':'✗ ไม่มี'}</span></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openEditModal(${e.id})">✎</button></td>
+    </tr>`).join('')
+    : `<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔍</div><h3>ไม่พบรายการ</h3></div></td></tr>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// MONTHLY SUMMARY
+// ═══════════════════════════════════════════════════════
+let activeMonthDetail = null;
+function renderMonthly(){
+  const now = new Date();
+  const curY = now.getFullYear();
+  const byMonth = {};
+  entries.forEach(e=>{
+    const d = new Date(e.date);
+    const key = `${d.getFullYear()}-${d.getMonth()+1}`;
+    if(!byMonth[key]) byMonth[key]={year:d.getFullYear(),month:d.getMonth()+1,items:[]};
+    byMonth[key].items.push(e);
+  });
+  const maxT = Math.max(...Object.values(byMonth).map(m=>m.items.reduce((s,e)=>(s+(+e.amt||0)+(+e.vat||0)),0)),1);
+  const cards = MONTHS_TH.map((_,i)=>{
+    const key = `${curY}-${i+1}`;
+    const mo  = byMonth[key];
+    const total = mo ? mo.items.reduce((s,e)=>(s+(+e.amt||0)+(+e.vat||0)),0) : 0;
+    const cnt   = mo ? mo.items.length : 0;
+    const pct   = (total/maxT*100).toFixed(0);
+    const isActive = activeMonthDetail===key;
+    return `
+      <div class="month-card ${isActive?'active-month':''} fade-in" onclick="toggleMonthDetail('${key}',${i})">
+        <div class="month-name">
+          <span>${MONTHS_TH[i]} ${curY}</span>
+          <span style="font-size:12px;color:var(--gray)">${cnt} รายการ</span>
+        </div>
+        <div class="month-total">฿${fmtShort(total)}</div>
+        <div class="month-count">฿${fmt(total)}</div>
+        <div class="month-bar-wrap"><div class="month-bar" style="width:${pct}%"></div></div>
+      </div>`;
+  });
+  document.getElementById('monthlyCards').innerHTML = cards.join('');
+  if(activeMonthDetail) renderMonthDetail(activeMonthDetail);
+}
+function toggleMonthDetail(key, moIdx){
+  if(activeMonthDetail===key){ activeMonthDetail=null; document.getElementById('monthDetail').style.display='none'; renderMonthly(); return; }
+  activeMonthDetail=key;
+  renderMonthly();
+}
+function renderMonthDetail(key){
+  const [y,m] = key.split('-').map(Number);
+  const moItems = entries.filter(e=>{ const d=new Date(e.date); return d.getFullYear()===y && d.getMonth()+1===m });
+  const det = document.getElementById('monthDetail');
+  det.style.display='block';
+  const catBreak = CATS.map(c=>{
+    const items = moItems.filter(e=>e.cat===c.name);
+    const sum = items.reduce((s,e)=>(s+(+e.amt||0)+(+e.vat||0)),0);
+    return {c,items,sum};
+  }).filter(x=>x.sum>0);
+  const grand = moItems.reduce((s,e)=>(s+(+e.amt||0)+(+e.vat||0)),0);
+  det.innerHTML = `
+    <div class="panel-title"><span></span>รายละเอียด ${MONTHS_TH[m-1]} ${y}</div>
+    ${catBreak.map(({c,items,sum})=>`
+      <div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+          background:${c.bg};border-radius:8px;margin-bottom:6px">
+          <span style="font-weight:700;color:${c.color}">${c.name}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:${c.color}">฿${fmt(sum)}</span>
+        </div>
+        ${items.map(e=>`
+          <div style="display:flex;justify-content:space-between;padding:7px 14px;font-size:13px">
+            <span style="color:var(--gray)">${formatDateTH(e.date)} · ${e.desc}</span>
+            <span style="font-family:'IBM Plex Mono',monospace">฿${fmt((+e.amt||0)+(+e.vat||0))}</span>
+          </div>`).join('')}
+      </div>`).join('')}
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+      <span style="font-size:16px;font-weight:700">รวมทั้งหมด</span>
+      <span style="font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--accent)">฿${fmt(grand)}</span>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// ADD / EDIT
+// ═══════════════════════════════════════════════════════
+function openAddModal(){
+  editId = null;
+  document.getElementById('modalTitle').textContent = 'เพิ่มรายการค่าใช้จ่าย';
+  document.getElementById('deleteBtn').style.display='none';
+  ['fDate','fDesc','fAmt','fVat','fNote'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fCat').value='';
+  document.getElementById('fReceipt').value='มี';
+  document.getElementById('addModal').classList.add('open');
+}
+function openEditModal(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+  editId = id;
+  document.getElementById('modalTitle').textContent = 'แก้ไขรายการ';
+  document.getElementById('deleteBtn').style.display='inline-flex';
+  document.getElementById('fDate').value = e.date;
+  document.getElementById('fCat').value  = e.cat;
+  document.getElementById('fDesc').value = e.desc;
+  document.getElementById('fAmt').value  = e.amt;
+  document.getElementById('fVat').value  = e.vat;
+  document.getElementById('fReceipt').value = e.receipt;
+  document.getElementById('fNote').value = e.note;
+  document.getElementById('addModal').classList.add('open');
+}
+function calcVAT(){
+  const amt = parseFloat(document.getElementById('fAmt').value)||0;
+  document.getElementById('fVat').value = (amt*0.07).toFixed(2);
+}
+function saveEntry(){
+  const date    = document.getElementById('fDate').value;
+  const cat     = document.getElementById('fCat').value;
+  const desc    = document.getElementById('fDesc').value.trim();
+  const amt     = parseFloat(document.getElementById('fAmt').value)||0;
+  const vat     = parseFloat(document.getElementById('fVat').value)||0;
+  const receipt = document.getElementById('fReceipt').value;
+  const note    = document.getElementById('fNote').value.trim();
+  if(!date||!cat||!desc||!amt){ showToast('กรุณากรอกข้อมูลให้ครบ','error'); return; }
+  if(editId){
+    const idx = entries.findIndex(e=>e.id===editId);
+    entries[idx] = {id:editId,date,cat,desc,amt,vat,receipt,note};
+    showToast('✏️ แก้ไขรายการเรียบร้อย');
+  } else {
+    const id = Date.now();
+    entries.push({id,date,cat,desc,amt,vat,receipt,note});
+    showToast('✅ เพิ่มรายการเรียบร้อย');
+  }
+  saveData();
+  closeModal('addModal');
+  renderDashboard();
+}
+function deleteEntry(){
+  if(!confirm('ยืนยันการลบรายการนี้?')) return;
+  entries = entries.filter(e=>e.id!==editId);
+  saveData();
+  closeModal('addModal');
+  renderEntries();
+  showToast('🗑 ลบรายการแล้ว','error');
+}
+
+// ═══════════════════════════════════════════════════════
+// SHARE
+// ═══════════════════════════════════════════════════════
+function showShareModal(){
+  document.getElementById('shareLinkInput').value='';
+  document.getElementById('shareModal').classList.add('open');
+}
+function generateShareLink(){
+  const data = btoa(JSON.stringify(entries));
+  const url  = `${location.origin}${location.pathname}?data=${data}`;
+  document.getElementById('shareLinkInput').value = url;
+}
+function copyShareLink(){
+  const val = document.getElementById('shareLinkInput').value;
+  if(!val){ showToast('กด "สร้าง Link" ก่อน','error'); return; }
+  navigator.clipboard.writeText(val).then(()=>showToast('📋 คัดลอก Link แล้ว!'));
+}
+function copyLink(){
+  generateShareLink();
+  const val = document.getElementById('shareLinkInput').value;
+  navigator.clipboard.writeText(val).then(()=>showToast('📋 คัดลอก Link แล้ว!'));
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════════
+function exportCSV(){
+  const rows = [['วันที่','หมวดหมู่','รายละเอียด','จำนวนเงิน','VAT','รวม','ใบเสร็จ','หมายเหตุ']];
+  [...entries].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+    rows.push([e.date,e.cat,e.desc,e.amt,e.vat,(+e.amt||0)+(+e.vat||0),e.receipt,e.note]);
+  });
+  const csv = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download = `expenses_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  showToast('⬇ ดาวน์โหลด CSV แล้ว');
+}
+
+// ═══════════════════════════════════════════════════════
+// DATE FORMAT
+// ═══════════════════════════════════════════════════════
+function formatDateTH(str){
+  if(!str) return '';
+  const d = new Date(str);
+  return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()+543}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+function init(){
+  loadData();
+  populateCatSelects();
+  document.getElementById('shareUrlDisplay').textContent = location.href.split('?')[0];
+  renderDashboard();
+  // Close modal on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(o=>{
+    o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open') });
+  });
+  // Responsive dashboard grid
+  if(window.innerWidth < 900){
+    document.getElementById('dashPanels').style.gridTemplateColumns='1fr';
+  }
+}
+init();
+</script>
+</body>
+</html>
